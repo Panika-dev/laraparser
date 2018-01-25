@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Repositories\ItemRepo;
 use Illuminate\Console\Command;
+use Yangqi\Htmldom\Htmldom;
 
 class GetItemsData extends Command
 {
@@ -20,14 +22,20 @@ class GetItemsData extends Command
      */
     protected $description = 'Command description';
 
-    /**
+	/**
+	 * @var ItemRepo
+	 */
+	private $itemRepo;
+
+	/**
      * Create a new command instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(ItemRepo $itemRepo)
     {
         parent::__construct();
+	    $this->itemRepo = $itemRepo;
     }
 
     /**
@@ -37,6 +45,13 @@ class GetItemsData extends Command
      */
     public function handle()
     {
-        //
+	    foreach ($this->itemRepo->all() as $keyItem => $item) {
+	    	$data = [];
+	    	$itemHtmlDom = new Htmldom($item->html);
+
+//	    	$data['name'] = $itemHtmlDom->find();
+
+		    $this->itemRepo->updateRich(['data' => $data, 'status' => 2], $item->id);
+	    }
     }
 }
