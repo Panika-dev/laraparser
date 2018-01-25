@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Repositories\ItemRepo;
 use Illuminate\Console\Command;
 
 class GetCsv extends Command
@@ -20,14 +21,20 @@ class GetCsv extends Command
      */
     protected $description = 'Command description';
 
-    /**
+	/**
+	 * @var ItemRepo
+	 */
+	private $itemRepo;
+
+	/**
      * Create a new command instance.
      *
      * @return void
      */
-    public function __construct()
+    public function __construct(ItemRepo $itemRepo)
     {
         parent::__construct();
+	    $this->itemRepo = $itemRepo;
     }
 
     /**
@@ -37,6 +44,18 @@ class GetCsv extends Command
      */
     public function handle()
     {
-        //
+	    $file = fopen('data.csv', 'w+');
+	    fwrite($file, implode("\t", [
+			    'id',
+			    'name',
+		    ]) . "\n");
+
+	    foreach ($this->itemRepo->all() as $keyItem => $item) {
+		    fwrite($file, implode("\t", $item['data']) . "\n");
+	    }
+
+	    fclose($file);
+
+	    $this->info('Completed');
     }
 }
