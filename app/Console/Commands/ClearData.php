@@ -42,9 +42,13 @@ class ClearData extends Command {
 				'items',
 			];
 
+			DB::statement('SET foreign_key_checks = 0');
+
 			foreach ($tables as $table) {
 				DB::table($table)->truncate();
 			}
+
+			DB::statement('SET foreign_key_checks = 1');
 
 			$this->info('Tables cleared');
 		} else {

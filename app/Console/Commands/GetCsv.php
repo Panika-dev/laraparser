@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Contracts\ParserInterface;
 use App\Repositories\ItemRepo;
 use Illuminate\Console\Command;
 
@@ -21,20 +22,27 @@ class GetCsv extends Command
      */
     protected $description = 'Command description';
 
-	/**
-	 * @var ItemRepo
-	 */
-	private $itemRepo;
+    /**
+     * @var ItemRepo
+     */
+    private $itemRepo;
 
-	/**
+    /**
+     * @var ParserInterface
+     */
+    private $parser;
+
+    /**
      * Create a new command instance.
      *
-     * @return void
+     * @param ItemRepo $itemRepo
+     * @param ParserInterface $parser
      */
-    public function __construct(ItemRepo $itemRepo)
+    public function __construct(ItemRepo $itemRepo, ParserInterface $parser)
     {
         parent::__construct();
-	    $this->itemRepo = $itemRepo;
+        $this->itemRepo = $itemRepo;
+        $this->parser = $parser;
     }
 
     /**
@@ -44,18 +52,32 @@ class GetCsv extends Command
      */
     public function handle()
     {
-	    $file = fopen('data.csv', 'w+');
-	    fwrite($file, implode("\t", [
-			    'id',
-			    'name',
-		    ]) . "\n");
+        $file = fopen('data.csv', 'w+');
+        fwrite($file, implode("\t", $this->parser->fields()) . "\n");
 
-	    foreach ($this->itemRepo->all() as $keyItem => $item) {
-		    fwrite($file, implode("\t", $item['data']) . "\n");
-	    }
+        foreach ($this->itemRepo->all() as $keyItem => $item) {
+            fwrite($file, implode("\t", $this->getData($item)) . "\n");
+        }
 
-	    fclose($file);
+        fclose($file);
 
-	    $this->info('Completed');
+        $this->info('Completed');
+    }
+
+    public function getData($item)
+    {
+        $data = [];
+
+        foreach ($this->parser->fields() as $field) {
+            if (method_exists($this->parser, $field . 'CsvCallback')) {
+                $data[$field] = $this->parser->{$field . 'CsvCallback'}($item->data[$field]);
+            } else {
+                $data[$field] = $item->data[$field];
+            }
+        }
+
+        $data = $this->parser->customUpdateDataCsv($data);
+
+        return $data;
     }
 }
