@@ -15,4 +15,8 @@ class Page extends Model {
 		'data',
 		'status',
 	];
+
+	protected $casts = [
+		'data' => 'array'
+	];
 }

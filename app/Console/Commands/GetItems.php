@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Contracts\ParserInterface;
 use App\Repositories\{
-	ItemRepo, PageRepo
+    ItemRepo, PageRepo
 };
 use Illuminate\Console\Command;
 use Yangqi\Htmldom\Htmldom;
@@ -24,26 +25,32 @@ class GetItems extends Command
      */
     protected $description = 'Command description';
 
-	/**
-	 * @var ItemRepo
-	 */
-	private $itemRepo;
+    /**
+     * @var ItemRepo
+     */
+    private $itemRepo;
 
-	/**
-	 * @var PageRepo
-	 */
-	private $pageRepo;
+    /**
+     * @var PageRepo
+     */
+    private $pageRepo;
 
-	/**
+    /**
+     * @var ParserInterface
+     */
+    private $parser;
+
+    /**
      * Create a new command instance.
      *
      * @return void
      */
-    public function __construct(ItemRepo $itemRepo, PageRepo $pageRepo)
+    public function __construct(ItemRepo $itemRepo, PageRepo $pageRepo, ParserInterface $parser)
     {
         parent::__construct();
-	    $this->itemRepo = $itemRepo;
-	    $this->pageRepo = $pageRepo;
+        $this->itemRepo = $itemRepo;
+        $this->pageRepo = $pageRepo;
+        $this->parser = $parser;
     }
 
     /**
@@ -53,38 +60,19 @@ class GetItems extends Command
      */
     public function handle()
     {
-    	DB::beginTransaction();
+        foreach ($this->pageRepo->findWhere(['status' => 1]) as $keyPage => $page) {
+            $pageHtmlDom = new Htmldom($page->html);
 
-        foreach ($this->pageRepo->all() as $keyPage => $page) {
-        	foreach ($this->getItems($page) as $item) {
-        		$this->itemRepo->create($item);
-	        }
+            //everyone must have url or oid
+            $items = $this->parser->findItemsOnPage($pageHtmlDom);
 
-	        $this->pageRepo->updateRich(['status' => 2], $page->id);
+            foreach ($items as $item) {
+                $this->itemRepo->create($item + ['status' => 0, 'page_id' => $page->id]);
+            }
+
+            $this->pageRepo->updateRich(['status' => 2], $page->id);
         }
-
-	    DB::commit();
 
         $this->info('Completed');
     }
-
-	private function getItems($page):array {
-    	$items = [];
-
-    	//find items;
-		$pageHtmlDom = new Htmldom($page->html);
-//		$pageItems = $pageHtmlDom->find();
-		$pageItems = [];
-
-		foreach ($pageItems as $pageItem) {
-			$items[] = [
-//				'oid' => $pageItem->find(),
-//				'url' => $pageItem->find(),
-//				'html' => $pageItem->find(),
-				'status' => 0 // if has html - 1
-			];
-		}
-
-    	return $items;
-	}
 }

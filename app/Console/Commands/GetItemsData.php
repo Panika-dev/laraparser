@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Contracts\ParserInterface;
 use App\Repositories\ItemRepo;
 use Illuminate\Console\Command;
 use Yangqi\Htmldom\Htmldom;
@@ -22,20 +23,27 @@ class GetItemsData extends Command
      */
     protected $description = 'Command description';
 
-	/**
-	 * @var ItemRepo
-	 */
-	private $itemRepo;
+    /**
+     * @var ItemRepo
+     */
+    private $itemRepo;
 
-	/**
+    /**
+     * @var ParserInterface
+     */
+    private $parser;
+
+    /**
      * Create a new command instance.
      *
-     * @return void
+     * @param ItemRepo $itemRepo
+     * @param ParserInterface $parser
      */
-    public function __construct(ItemRepo $itemRepo)
+    public function __construct(ItemRepo $itemRepo, ParserInterface $parser)
     {
         parent::__construct();
-	    $this->itemRepo = $itemRepo;
+        $this->itemRepo = $itemRepo;
+        $this->parser = $parser;
     }
 
     /**
@@ -45,13 +53,37 @@ class GetItemsData extends Command
      */
     public function handle()
     {
-	    foreach ($this->itemRepo->all() as $keyItem => $item) {
-	    	$data = [];
-	    	$itemHtmlDom = new Htmldom($item->html);
+        $items = $this->itemRepo->findWhere(['status' => 1]);
+        $countItems = count($items);
 
-//	    	$data['name'] = $itemHtmlDom->find();
+        $this->info($countItems);
 
-		    $this->itemRepo->updateRich(['data' => $data, 'status' => 2], $item->id);
-	    }
+        foreach ($items as $keyItem => $item) {
+            $this->info($keyItem . '/' . $countItems);
+
+            $itemHtmlDom = new Htmldom($item->html);
+
+            $data = [];
+
+            foreach ($this->parser->fields() as $field) {
+                try {
+                    if (method_exists($this->parser, $field . 'DataFind')) {
+                        $data[$field] = $this->parser->{$field . 'DataFind'}($itemHtmlDom);
+
+                        if (method_exists($this->parser, $field . 'DataChange')) {
+                            $data[$field] = $this->parser->{$field . 'DataChange'}($data[$field]);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $data[$field] = null;
+                }
+            }
+
+            $data = $this->parser->customUpdateData($data);
+
+            $this->itemRepo->updateRich(['data' => $data, 'status' => 2], $item->id);
+        }
+
+        $this->info('Completed');
     }
 }

@@ -14,7 +14,7 @@ class CreateFieldPageIdForItemsTable extends Migration
     public function up()
     {
         Schema::table('items', function (Blueprint $table) {
-            $table->unsignedInteger('page_id')->nullable();
+            $table->unsignedInteger('page_id')->after('status')->nullable();
             $table->foreign('page_id')->references('id')->on('pages')->onDelete('cascade');
         });
     }
