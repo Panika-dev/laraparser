@@ -1,7 +1,7 @@
 # Laraparser
 Parser based on Laravel.
 
-###Simple for use, simple for customize
+####Simple for use, simple for customize
 
 ## Install
 * Clone the repository
@@ -44,7 +44,7 @@ $ art laraparser:clear
 * Create class of your parser ``app/Parsers``
 * Your class must 
 ```php
-class YourParser extends Parser implements ParserInterface {}
+    class YourParser extends Parser implements ParserInterface {}
 ```
 * Bind your parser ``app/Providers/AppServiceProvider.php``
 ```php
@@ -65,7 +65,6 @@ class YourParser extends Parser implements ParserInterface {}
 
 ## Idies
 * Custom filename and separator for csv-file
-* 
 * Web-interface
 * Multithreaded parsing with proxy
 * Test mode
